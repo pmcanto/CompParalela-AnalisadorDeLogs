@@ -4,25 +4,28 @@
 #include <pthread.h>
 #include <time.h>
 
+// struct pra guardar estatisticas 
 typedef struct {
     long long errors404;
     long long total_bytes;
 } Stats;
 
+// argumentos passados para cada thread
 typedef struct {
     int start_line;
     int end_line;
     char **lines;
 } ThreadArgs;
 
-Stats global_stats = {0, 0};
-pthread_mutex_t stats_mutex;
+Stats global_stats = {0, 0};  // stats globais
+pthread_mutex_t stats_mutex;  // mutex para proteger stats globais
 
+// funcao que cada thread vai executar
 void* process_log_chunk(void* arg) {
     ThreadArgs* args = (ThreadArgs*)arg;
     Stats local_stats = {0, 0};
 
-    for (int i = args->start_line; i < args->end_line; i++) {
+    for (int i = args->start_line; i < args->end_line; i++) { // percorre linhas atribuidas
         char *line = args->lines[i];
         char *quote_ptr = strstr(line, "\" ");
         if (quote_ptr) {
@@ -38,6 +41,7 @@ void* process_log_chunk(void* arg) {
         }
     }
 
+    // atualiza stats globais com mutex
     pthread_mutex_lock(&stats_mutex);
     global_stats.errors404 += local_stats.errors404;
     global_stats.total_bytes += local_stats.total_bytes;
@@ -47,6 +51,7 @@ void* process_log_chunk(void* arg) {
 }
 
 int main(int argc, char *argv[]) {
+    // checa argumentos
     if (argc != 3) {
         fprintf(stderr, "Uso: %s <caminho_do_arquivo_de_log> <numero_de_threads>\n", argv[0]);
         return 1;
@@ -55,6 +60,7 @@ int main(int argc, char *argv[]) {
     const char *filename = argv[1];
     int num_threads = atoi(argv[2]);
 
+    // le todas as linhas do arquivo para a memoria
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         perror("Erro ao abrir o arquivo");
@@ -67,19 +73,20 @@ int main(int argc, char *argv[]) {
     long num_lines = 0;
     while (getline(&line, &len, fp) != -1) {
         lines = realloc(lines, sizeof(char*) * (num_lines + 1));
-        lines[num_lines] = strdup(line);
+        lines[num_lines] = strdup(line); // copia linha para a memoria
         num_lines++;
     }
     fclose(fp);
     if(line) free(line);
 
     struct timespec start, end;
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    clock_gettime(CLOCK_MONOTONIC, &start); // inicia contagewm de tempo
 
     pthread_t threads[num_threads];
     ThreadArgs thread_args[num_threads];
     pthread_mutex_init(&stats_mutex, NULL);
 
+    // divide linhas entre threads
     long lines_per_thread = num_lines / num_threads;
     long remaining_lines = num_lines % num_threads;
     long current_line = 0;
@@ -98,7 +105,7 @@ int main(int argc, char *argv[]) {
         pthread_join(threads[i], NULL);
     }
     
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    clock_gettime(CLOCK_MONOTONIC, &end); // termina contagem de tempo
     double time_spent = (end.tv_sec - start.tv_sec) +
                         (end.tv_nsec - start.tv_nsec) / 1e9;
 
@@ -107,11 +114,12 @@ int main(int argc, char *argv[]) {
     printf("Total de bytes transferidos (código 200): %lld\n", global_stats.total_bytes);
     printf("Tempo de execução: %.4f segundos\n", time_spent);
 
-    pthread_mutex_destroy(&stats_mutex);
+    pthread_mutex_destroy(&stats_mutex); // limpa mutex
     for (long i = 0; i < num_lines; i++) {
         free(lines[i]);
     }
     free(lines);
 
     return 0;
+
 }
