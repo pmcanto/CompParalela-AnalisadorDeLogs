@@ -3,11 +3,13 @@
 #include <string.h>
 #include <time.h>
 
+// guarda estatisticas do log
 typedef struct {
     long long errors404;
     long long total_bytes;
 } Stats;
 
+// processa uma linha do log e atualiza o stats
 void parse_log_line(char *line, Stats *stats) {
     char *quote_ptr = strstr(line, "\" ");
     if (quote_ptr) {
@@ -24,19 +26,20 @@ void parse_log_line(char *line, Stats *stats) {
 }
 
 int main(int argc, char *argv[]) {
+    // verifica se passou o arquivo como argumento
     if (argc != 2) {
         fprintf(stderr, "Uso: %s <caminho_do_arquivo_de_log>\n", argv[0]);
         return 1;
     }
 
-    const char *filename = argv[1];
+    const char *filename = argv[1]; // abre o arquivo
     FILE *fp = fopen(filename, "r");
     if (fp == NULL) {
         perror("Erro ao abrir o arquivo");
         return 1;
     }
 
-    struct timespec start, end;
+    struct timespec start, end; // para medir tempo
     clock_gettime(CLOCK_MONOTONIC, &start);
 
     Stats stats = {0, 0};
@@ -62,4 +65,5 @@ int main(int argc, char *argv[]) {
     }
 
     return 0;
+
 }
