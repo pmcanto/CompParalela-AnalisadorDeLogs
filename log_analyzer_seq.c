@@ -39,8 +39,8 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    struct timespec start, end; // para medir tempo
-    clock_gettime(CLOCK_MONOTONIC, &start);
+    struct timespec start, end; // mede o tempo
+    clock_gettime(CLOCK_MONOTONIC, &start); // hora inicial
 
     Stats stats = {0, 0};
     char *line = NULL;
@@ -50,14 +50,14 @@ int main(int argc, char *argv[]) {
         parse_log_line(line, &stats);
     }
 
-    clock_gettime(CLOCK_MONOTONIC, &end);
+    clock_gettime(CLOCK_MONOTONIC, &end); // hora final
     double time_spent = (end.tv_sec - start.tv_sec) +
                         (end.tv_nsec - start.tv_nsec) / 1e9;
 
     printf("--- Versão Sequencial ---\n");
     printf("Total de erros 404: %lld\n", stats.errors404);
     printf("Total de bytes transferidos (código 200): %lld\n", stats.total_bytes);
-    printf("Tempo de execução: %.4f segundos\n", time_spent);
+    printf("Tempo de execução: %.4f segundos\n", time_spent); // tempo de execucao
 
     fclose(fp);
     if (line) {
@@ -67,3 +67,4 @@ int main(int argc, char *argv[]) {
     return 0;
 
 }
+
